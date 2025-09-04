@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathventures - Interactive Quest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        @keyframes walk {
+            0% { background-position: 0 0; }
+            100% { background-position: -512px 0; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes sparkle {
+            0% { opacity: 0; transform: scale(0) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1) rotate(180deg); }
+            100% { opacity: 0; transform: scale(0) rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-20px); }
+            50% { transform: translateY(0); }
+            75% { transform: translateY(-10px); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+            50% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.9), 0 0 60px rgba(255, 215, 0, 0.4); }
+        }
+
+        @keyframes portalSpin {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        @keyframes moveForward {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(150px); }
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8C8 100%);
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Main Game World */
+        .game-world {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+            display: none;
+        }
+
+        .game-world.active {
+            display: block;
+        }
+
+        /* Scrolling Background */
+        .world-background {
+            position: absolute;
+            width: 200%;
+            height: 100%;
+            bottom: 0;
+            background-size: contain;
+            background-repeat: repeat-x;
+            background-position: 0 bottom;
+            transition: transform 2s ease-in-out;
+        }
+
+        .forest-bg {
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8C8 60%, #7CB342 100%);
+        }
+
+        .forest-bg::before {
+            content: '🌲🌳🌲🌴🌲🌳🌲🌴🌲🌳';
+            position: absolute;
+            bottom: 100px;
+            font-size: 80px;
+            width: 200%;
+            letter-spacing: 50px;
+        }
+
+        .desert-bg {
+            background: linear-gradient(to bottom, #FFE082 0%, #FFB74D 60%, #F4A460 100%);
+        }
+
+        .desert-bg::before {
+            content: '🌵🏜️🌵🐪🌵🏜️🌵🐪🌵';
+            position: absolute;
+            bottom: 100px;
+            font-size: 80px;
+            width: 200%;
+            letter-spacing: 50px;
+        }
+
+        .mountain-bg {
+            background: linear-gradient(to bottom, #B39DDB 0%, #9575CD 60%, #7E57C2 100%);
+        }
+
+        .mountain-bg::before {
+            content: '⛰️🏔️⛰️🦅⛰️🏔️⛰️🦅';
+            position: absolute;
+            bottom: 100px;
+            font-size: 80px;
+            width: 200%;
+            letter-spacing: 50px;
+        }
+
+        /* Ground */
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 100px;
+            background: linear-gradient(to bottom, #8D6E63 0%, #6D4C41 100%);
+            border-top: 5px solid #5D4037;
+        }
+
+        /* Path with markers */
+        .quest-path {
+            position: absolute;
+            bottom: 50px;
+            width: 200%;
+            height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .path-segment {
+            width: 300px;
+            height: 60px;
+            background: repeating-linear-gradient(
+                90deg,
+                #D7CCC8,
+                #D7CCC8 20px,
+                #BCAAA4 20px,
+                #BCAAA4 40px
+            );
+            border: 3px solid #8D6E63;
+            border-radius: 10px;
+            margin: 0 20px;
+            position: relative;
+        }
+
+        /* Character */
+        .hero {
+            position: absolute;
+            bottom: 100px;
+            left: 100px;
+            width: 80px;
+            height: 100px;
+            z-index: 100;
+            transition: left 1.5s ease-in-out;
+        }
+
+        .hero-sprite {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 40% 40% 50% 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            animation: float 2s ease-in-out infinite;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .hero.walking .hero-sprite {
+            animation: bounce 0.5s infinite;
+        }
+
+        /* NPCs and Obstacles */
+        .npc {
+            position: absolute;
+            bottom: 100px;
+            width: 70px;
+            height: 90px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .npc:hover {
+            transform: scale(1.1);
+        }
+
+        .npc-sprite {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .quest-marker {
+            position: absolute;
+            bottom: 180px;
+            font-size: 30px;
+            animation: bounce 1s infinite;
+        }
+
+        /* Portal */
+        .portal {
+            position: absolute;
+            bottom: 80px;
+            width: 120px;
+            height: 150px;
+            background: radial-gradient(ellipse, #E91E63 0%, #9C27B0 50%, #3F51B5 100%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            animation: portalSpin 3s linear infinite;
+            box-shadow: 0 0 50px rgba(233, 30, 99, 0.6);
+        }
+
+        /* Dialogue System */
+        .dialogue-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,240,240,0.95) 100%);
+            border: 3px solid #5f27cd;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .dialogue-box.active {
+            display: block;
+        }
+
+        .dialogue-character {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .dialogue-avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            margin-right: 15px;
+        }
+
+        .dialogue-name {
+            font-weight: bold;
+            color: #5f27cd;
+            font-size: 1.2em;
+        }
+
+        .dialogue-text {
+            font-size: 1.1em;
+            line-height: 1.5;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .dialogue-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .dialogue-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: transform 0.3s;
+        }
+
+        .dialogue-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Math Challenge Overlay */
+        .math-challenge {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .math-challenge.active {
+            display: flex;
+        }
+
+        .challenge-box {
+            width: 90%;
+            max-width: 500px;
+            background: linear-gradient(135deg, #fff 0%, #f5f5f5 100%);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: bounce 0.5s ease-out;
+        }
+
+        .challenge-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .challenge-title {
+            font-size: 1.8em;
+            color: #5f27cd;
+            margin-bottom: 10px;
+        }
+
+        .challenge-enemy {
+            font-size: 80px;
+            margin: 20px 0;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        .challenge-question {
+            font-size: 1.5em;
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            border-radius: 15px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .challenge-answers {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .answer-btn {
+            background: white;
+            color: #5f27cd;
+            border: 3px solid #5f27cd;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .answer-btn:hover {
+            background: #5f27cd;
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .answer-btn.correct {
+            background: #00b894;
+            color: white;
+            border-color: #00b894;
+            animation: pulse 0.5s;
+        }
+
+        .answer-btn.wrong {
+            background: #d63031;
+            color: white;
+            border-color: #d63031;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* HUD */
+        .game-hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 500;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+        }
+
+        .hud-section {
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .health-bar {
+            display: flex;
+            gap: 5px;
+        }
+
+        .heart {
+            font-size: 25px;
+            transition: transform 0.3s;
+        }
+
+        .heart.lost {
+            filter: grayscale(100%);
+            transform: scale(0.8);
+        }
+
+        .score-display {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #5f27cd;
+        }
+
+        .inventory {
+            display: flex;
+            gap: 10px;
+        }
+
+        .inventory-item {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 25px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            position: relative;
+        }
+
+        .inventory-item:hover {
+            transform: scale(1.2);
+        }
+
+        .item-count {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Title Screen */
+        .title-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .title-screen.hidden {
+            display: none;
+        }
+
+        .title-content {
+            text-align: center;
+            color: white;
+        }
+
+        .game-title {
+            font-size: 4em;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .title-hero {
+            font-size: 100px;
+            margin: 20px 0;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .start-btn {
+            background: white;
+            color: #5f27cd;
+            font-size: 1.5em;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .start-btn:hover {
+            transform: scale(1.1);
+            animation: glow 1s ease-in-out infinite;
+        }
+
+        /* Quest Log */
+        .quest-log {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 250px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 400;
+        }
+
+        .quest-title {
+            font-size: 1.3em;
+            color: #5f27cd;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .quest-objective {
+            padding: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .quest-objective.completed {
+            background: rgba(0, 184, 148, 0.1);
+            border-left-color: #00b894;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        /* Collectibles */
+        .collectible {
+            position: absolute;
+            bottom: 130px;
+            font-size: 30px;
+            cursor: pointer;
+            animation: float 2s ease-in-out infinite;
+            transition: transform 0.3s;
+        }
+
+        .collectible:hover {
+            transform: scale(1.3);
+        }
+
+        .collectible.collected {
+            animation: collectAnimation 0.5s ease-out forwards;
+        }
+
+        @keyframes collectAnimation {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.5) rotate(180deg); }
+            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+
+        /* Particles */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            animation: particleFloat 2s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+            0% { 
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% { 
+                transform: translate(var(--dx), var(--dy)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Victory Screen */
+        .victory-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 4000;
+        }
+
+        .victory-screen.active {
+            display: flex;
+        }
+
+        .victory-content {
+            text-align: center;
+            color: white;
+        }
+
+        .victory-title {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        }
+
+        .trophy {
+            font-size: 150px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        .final-stats {
+            font-size: 1.5em;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Title Screen -->
+    <div class="title-screen" id="titleScreen">
+        <div class="title-content">
+            <h1 class="game-title">✨ Mathventures ✨</h1>
+            <div class="title-hero">🧙‍♂️</div>
+            <p style="font-size: 1.3em; margin-bottom: 30px;">
+                An Epic Quest to Save the Kingdom of Numerica!
+            </p>
+            <button class="start-btn" onclick="startQuest()">Begin Your Quest</button>
+        </div>
+    </div>
+
+    <!-- Main Game World -->
+    <div class="game-world" id="gameWorld">
+        <div class="world-background forest-bg" id="worldBg"></div>
+        <div class="ground"></div>
+        
+        <!-- Quest Path -->
+        <div class="quest-path" id="questPath">
+            <!-- Dynamic path elements will be added here -->
+        </div>
+
+        <!-- Hero Character -->
+        <div class="hero" id="hero">
+            <div class="hero-sprite">🧙‍♂️</div>
+        </div>
+
+        <!-- HUD -->
+        <div class="game-hud">
+            <div class="hud-section">
+                <span>❤️</span>
+                <div class="health-bar" id="healthBar">
+                    <span class="heart">❤️</span>
+                    <span class="heart">❤️</span>
+                    <span class="heart">❤️</span>
+                </div>
+            </div>
+            
+            <div class="hud-section">
+                <span>⭐</span>
+                <span class="score-display">Score: <span id="score">0</span></span>
+            </div>
+            
+            <div class="hud-section">
+                <span>🎒</span>
+                <div class="inventory" id="inventory">
+                    <div class="inventory-item" onclick="useItem('potion')">
+                        🧪
+                        <span class="item-count">3</span>
+                    </div>
+                    <div class="inventory-item" onclick="useItem('crystal')">
+                        💎
+                        <span class="item-count">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quest Log -->
+        <div class="quest-log">
+            <div class="quest-title">📜 Current Quest</div>
+            <div id="questObjectives">
+                <div class="quest-objective" id="obj1">
+                    ✦ Reach the Magic Portal
+                </div>
+                <div class="quest-objective" id="obj2">
+                    ✦ Defeat 3 Math Monsters
+                </div>
+                <div class="quest-objective" id="obj3">
+                    ✦ Collect 5 Magic Crystals
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dialogue System -->
+    <div class="dialogue-box" id="dialogueBox">
+        <div class="dialogue-character">
+            <div class="dialogue-avatar" id="dialogueAvatar">🧙‍♂️</div>
+            <div class="dialogue-name" id="dialogueName">Math Wizard</div>
+        </div>
+        <div class="dialogue-text" id="dialogueText">
+            Welcome, brave adventurer! The Kingdom of Numerica needs your help!
+        </div>
+        <div class="dialogue-options" id="dialogueOptions">
+            <button class="dialogue-btn" onclick="continueDialogue()">Continue</button>
+        </div>
+    </div>
+
+    <!-- Math Challenge Overlay -->
+    <div class="math-challenge" id="mathChallenge">
+        <div class="challenge-box">
+            <div class="challenge-header">
+                <h2 class="challenge-title">Math Battle!</h2>
+                <div class="challenge-enemy" id="challengeEnemy">🐺</div>
+            </div>
+            <div class="challenge-question" id="challengeQuestion">
+                Loading question...
+            </div>
+            <div class="challenge-answers" id="challengeAnswers">
+                <!-- Answer buttons will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div class="victory-screen" id="victoryScreen">
+        <div class="victory-content">
+            <h1 class="victory-title">🎉 Quest Complete! 🎉</h1>
+            <div class="trophy">🏆</div>
+            <div class="final-stats">
+                <p>Final Score: <span id="finalScore">0</span></p>
+                <p>Crystals Collected: <span id="finalCrystals">0</span></p>
+                <p>Monsters Defeated: <span id="finalMonsters">0</span></p>
+            </div>
+            <button class="start-btn" onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            health: 3,
+            score: 0,
+            position: 0,
+            currentWorld: 0,
+            inventory: {
+                potion: 3,
+                crystal: 0
+            },
+            questProgress: {
+                monstersDefeated: 0,
+                crystalsCollected: 0,
+                distanceTraveled: 0
+            },
+            currentDialogue: 0,
+            inBattle: false
+        };
+
+        // World Data
+        const worlds = [
+            {
+                name: "Forest of Fractions",
+                background: "forest-bg",
+                enemies: ["🐺", "🦊", "🐻"],
+                npcs: [{
+                    sprite: "🧚",
+                    name: "Forest Fairy",
+                    dialogue: [
+                        "Welcome to the Forest of Fractions!",
+                        "The math monsters have stolen our magic crystals!",
+                        "Defeat them by solving their math puzzles!"
+                    ]
+                }]
+            },
+            {
+                name: "Desert of Division",
+                background: "desert-bg",
+                enemies: ["🦂", "🐍", "🦎"],
+                npcs: [{
+                    sprite: "🧞",
+                    name: "Desert Genie",
+                    dialogue: [
+                        "The desert holds many challenges!",
+                        "Use your math skills wisely!"
+                    ]
+                }]
+            },
+            {
+                name: "Mountain of Multiplication",
+                background: "mountain-bg",
+                enemies: ["🦅", "🐐", "⛄"],
+                npcs: [{
+                    sprite: "🧙‍♀️",
+                    name: "Mountain Sage",
+                    dialogue: [
+                        "The peak awaits the worthy!",
+                        "Only true math masters can reach the summit!"
+                    ]
+                }]
+            }
+        ];
+
+        // Start Quest
+        function startQuest() {
+            document.getElementById('titleScreen').classList.add('hidden');
+            document.getElementById('gameWorld').classList.add('active');
+            initializeWorld();
+            showDialogue("Math Wizard", "🧙‍♂️", [
+                "Welcome, brave adventurer!",
+                "The Kingdom of Numerica has been overrun by math monsters!",
+                "You must journey through three worlds and defeat them all!",
+                "Use WASD or Arrow Keys to move. Good luck!"
+            ]);
+        }
+
+        // Initialize World
+        function initializeWorld() {
+            generatePath();
+            setupKeyboardControls();
+            updateHUD();
+        }
+
+        // Generate Path with NPCs, Enemies, and Collectibles
+        function generatePath() {
+            const path = document.getElementById('questPath');
+            path.innerHTML = '';
+            
+            for (let i = 0; i < 10; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'path-segment';
+                segment.style.left = (i * 350) + 'px';
+                
+                // Add random elements
+                if (i > 0 && i < 9) {
+                    if (i % 3 === 0) {
+                        // Add enemy
+                        const enemy = document.createElement('div');
+                        enemy.className = 'npc';
+                        enemy.style.left = (i * 350 + 150) + 'px';
+                        enemy.innerHTML = `
+                            <div class="quest-marker">⚔️</div>
+                            <div class="npc-sprite">${worlds[gameState.currentWorld].enemies[Math.floor(Math.random() * 3)]}</div>
+                        `;
+                        enemy.onclick = () => startBattle(enemy);
+                        path.appendChild(enemy);
+                    } else if (i % 2 === 0) {
+                        // Add collectible
+                        const collectible = document.createElement('div');
+                        collectible.className = 'collectible';
+                        collectible.style.left = (i * 350 + 150) + 'px';
+                        collectible.textContent = '💎';
+                        collectible.onclick = () => collectItem(collectible);
+                        path.appendChild(collectible);
+                    } else if (i === 1) {
+                        // Add NPC
+                        const npc = worlds[gameState.currentWorld].npcs[0];
+                        const npcElement = document.createElement('div');
+                        npcElement.className = 'npc';
+                        npcElement.style.left = (i * 350 + 150) + 'px';
+                        npcElement.innerHTML = `
+                            <div class="quest-marker">💬</div>
+                            <div class="npc-sprite">${npc.sprite}</div>
+                        `;
+                        npcElement.onclick = () => talkToNPC(npc);
+                        path.appendChild(npcElement);
+                    }
+                }
+                
+                path.appendChild(segment);
+            }
+            
+            // Add portal at the end
+            const portal = document.createElement('div');
+            portal.className = 'portal';
+            portal.style.left = '3300px';
+            portal.textContent = '🌀';
+            portal.onclick = () => enterPortal();
+            path.appendChild(portal);
+        }
+
+        // Keyboard Controls
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', (e) => {
+                if (gameState.inBattle || document.getElementById('dialogueBox').classList.contains('active')) {
+                    return;
+                }
+                
+                const hero = document.getElementById('hero');
+                const currentLeft = parseInt(hero.style.left) || 100;
+                const worldBg = document.getElementById('worldBg');
+                const path = document.getElementById('questPath');
+                
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                    moveHero('right');
+                } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                    moveHero('left');
+                } else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                    jumpHero();
+                }
+            });
+        }
+
+        // Move Hero
+        function moveHero(direction) {
+            const hero = document.getElementById('hero');
+            const currentLeft = parseInt(hero.style.left) || 100;
+            const worldBg = document.getElementById('worldBg');
+            const path = document.getElementById('questPath');
+            
+            if (direction === 'right' && gameState.position < 3200) {
+                hero.classList.add('walking');
+                
+                if (currentLeft < 400) {
+                    hero.style.left = (currentLeft + 30) + 'px';
+                } else {
+                    // Scroll the world
+                    gameState.position += 30;
+                    worldBg.style.transform = `translateX(-${gameState.position}px)`;
+                    path.style.transform = `translateX(-${gameState.position}px)`;
+                }
+                
+                gameState.questProgress.distanceTraveled += 30;
+                checkCollisions();
+                
+                setTimeout(() => hero.classList.remove('walking'), 500);
+            } else if (direction === 'left' && currentLeft > 50) {
+                hero.classList.add('walking');
+                
+                if (gameState.position > 0 && currentLeft <= 400) {
+                    gameState.position = Math.max(0, gameState.position - 30);
+                    worldBg.style.transform = `translateX(-${gameState.position}px)`;
+                    path.style.transform = `translateX(-${gameState.position}px)`;
+                } else if (currentLeft > 50) {
+                    hero.style.left = (currentLeft - 30) + 'px';
+                }
+                
+                setTimeout(() => hero.classList.remove('walking'), 500);
+            }
+        }
+
+        // Jump Hero
+        function jumpHero() {
+            const hero = document.getElementById('hero');
+            hero.style.animation = 'none';
+            setTimeout(() => {
+                hero.style.animation = 'bounce 0.5s ease-out';
+            }, 10);
+            createParticles(hero, '✨');
+        }
+
+        // Check Collisions
+        function checkCollisions() {
+            const hero = document.getElementById('hero');
+            const heroRect = hero.getBoundingClientRect();
+            
+            // Check collectibles
+            document.querySelectorAll('.collectible:not(.collected)').forEach(item => {
+                const itemRect = item.getBoundingClientRect();
+                if (isColliding(heroRect, itemRect)) {
+                    collectItem(item);
+                }
+            });
+        }
+
+        // Collision Detection
+        function isColliding(rect1, rect2) {
+            return !(rect1.right < rect2.left || 
+                     rect1.left > rect2.right || 
+                     rect1.bottom < rect2.top || 
+                     rect1.top > rect2.bottom);
+        }
+
+        // Show Dialogue
+        function showDialogue(name, avatar, messages) {
+            const dialogueBox = document.getElementById('dialogueBox');
+            document.getElementById('dialogueName').textContent = name;
+            document.getElementById('dialogueAvatar').textContent = avatar;
+            
+            gameState.currentDialogue = 0;
+            gameState.dialogueMessages = messages;
+            
+            dialogueBox.classList.add('active');
+            displayDialogueMessage();
+        }
+
+        // Display Dialogue Message
+        function displayDialogueMessage() {
+            if (gameState.currentDialogue < gameState.dialogueMessages.length) {
+                document.getElementById('dialogueText').textContent = 
+                    gameState.dialogueMessages[gameState.currentDialogue];
+            }
+        }
+
+        // Continue Dialogue
+        function continueDialogue() {
+            gameState.currentDialogue++;
+            if (gameState.currentDialogue < gameState.dialogueMessages.length) {
+                displayDialogueMessage();
+            } else {
+                document.getElementById('dialogueBox').classList.remove('active');
+            }
+        }
+
+        // Talk to NPC
+        function talkToNPC(npc) {
+            showDialogue(npc.name, npc.sprite, npc.dialogue);
+        }
+
+        // Start Battle
+        function startBattle(enemy) {
+            gameState.inBattle = true;
+            const enemySprite = enemy.querySelector('.npc-sprite').textContent;
+            
+            document.getElementById('challengeEnemy').textContent = enemySprite;
+            document.getElementById('mathChallenge').classList.add('active');
+            
+            // Store enemy reference for removal after victory
+            gameState.currentEnemy = enemy;
+            
+            generateMathQuestion();
+        }
+
+        // Generate Math Question
+        function generateMathQuestion() {
+            const difficulty = gameState.currentWorld + 1;
+            const operations = ['add', 'subtract', 'multiply', 'divide'];
+            const operation = operations[Math.floor(Math.random() * operations.length)];
+            
+            let question, answer;
+            
+            switch(operation) {
+                case 'add':
+                    const a1 = Math.floor(Math.random() * 50 * difficulty) + 10;
+                    const a2 = Math.floor(Math.random() * 50 * difficulty) + 10;
+                    question = `${a1} + ${a2} = ?`;
+                    answer = a1 + a2;
+                    break;
+                case 'subtract':
+                    const s1 = Math.floor(Math.random() * 100 * difficulty) + 50;
+                    const s2 = Math.floor(Math.random() * 50 * difficulty) + 10;
+                    question = `${s1} - ${s2} = ?`;
+                    answer = s1 - s2;
+                    break;
+                case 'multiply':
+                    const m1 = Math.floor(Math.random() * 12) + 2;
+                    const m2 = Math.floor(Math.random() * 12) + 2;
+                    question = `${m1} × ${m2} = ?`;
+                    answer = m1 * m2;
+                    break;
+                case 'divide':
+                    const divisor = Math.floor(Math.random() * 10) + 2;
+                    const quotient = Math.floor(Math.random() * 12) + 2;
+                    const dividend = divisor * quotient;
+                    question = `${dividend} ÷ ${divisor} = ?`;
+                    answer = quotient;
+                    break;
+            }
+            
+            document.getElementById('challengeQuestion').textContent = question;
+            
+            // Generate answer options
+            const options = [answer];
+            while (options.length < 4) {
+                const wrong = answer + Math.floor(Math.random() * 20) - 10;
+                if (!options.includes(wrong) && wrong > 0) {
+                    options.push(wrong);
+                }
+            }
+            options.sort(() => Math.random() - 0.5);
+            
+            // Create answer buttons
+            const answersDiv = document.getElementById('challengeAnswers');
+            answersDiv.innerHTML = '';
+            options.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = option;
+                btn.onclick = () => checkAnswer(option, answer, btn);
+                answersDiv.appendChild(btn);
+            });
+        }
+
+        // Check Answer
+        function checkAnswer(selected, correct, button) {
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            if (selected === correct) {
+                button.classList.add('correct');
+                gameState.score += 100;
+                gameState.questProgress.monstersDefeated++;
+                
+                createParticles(button, '⭐');
+                
+                setTimeout(() => {
+                    document.getElementById('mathChallenge').classList.remove('active');
+                    gameState.inBattle = false;
+                    
+                    // Remove defeated enemy
+                    if (gameState.currentEnemy) {
+                        gameState.currentEnemy.style.animation = 'collectAnimation 0.5s ease-out forwards';
+                        setTimeout(() => gameState.currentEnemy.remove(), 500);
+                    }
+                    
+                    updateHUD();
+                    updateQuestLog();
+                    
+                    // Check for victory
+                    if (gameState.questProgress.monstersDefeated >= 3) {
+                        showDialogue("Math Wizard", "🧙‍♂️", [
+                            "Excellent work! You've defeated enough monsters!",
+                            "Now reach the portal to complete your quest!"
+                        ]);
+                    }
+                }, 1500);
+            } else {
+                button.classList.add('wrong');
+                gameState.health--;
+                updateHUD();
+                
+                // Show correct answer
+                buttons.forEach(btn => {
+                    if (parseInt(btn.textContent) === correct) {
+                        btn.classList.add('correct');
+                    }
+                });
+                
+                setTimeout(() => {
+                    if (gameState.health <= 0) {
+                        gameOver();
+                    } else {
+                        generateMathQuestion();
+                    }
+                }, 2000);
+            }
+        }
+
+        // Collect Item
+        function collectItem(item) {
+            item.classList.add('collected');
+            gameState.inventory.crystal++;
+            gameState.questProgress.crystalsCollected++;
+            gameState.score += 50;
+            
+            createParticles(item, '💎');
+            updateHUD();
+            updateQuestLog();
+            
+            setTimeout(() => item.remove(), 500);
+        }
+
+        // Use Item
+        function useItem(type) {
+            if (type === 'potion' && gameState.inventory.potion > 0 && gameState.health < 3) {
+                gameState.inventory.potion--;
+                gameState.health = Math.min(3, gameState.health + 1);
+                updateHUD();
+                createParticles(document.getElementById('hero'), '💚');
+            }
+        }
+
+        // Enter Portal
+        function enterPortal() {
+            if (gameState.questProgress.monstersDefeated >= 3) {
+                showVictory();
+            } else {
+                showDialogue("Portal Guardian", "🌀", [
+                    "You must defeat at least 3 math monsters before entering!",
+                    `You've defeated ${gameState.questProgress.monstersDefeated} so far.`
+                ]);
+            }
+        }
+
+        // Update HUD
+        function updateHUD() {
+            document.getElementById('score').textContent = gameState.score;
+            
+            // Update health
+            const hearts = document.querySelectorAll('.health-bar .heart');
+            hearts.forEach((heart, index) => {
+                if (index < gameState.health) {
+                    heart.classList.remove('lost');
+                    heart.textContent = '❤️';
+                } else {
+                    heart.classList.add('lost');
+                    heart.textContent = '💔';
+                }
+            });
+            
+            // Update inventory
+            document.querySelector('.inventory-item .item-count').textContent = gameState.inventory.potion;
+            document.querySelectorAll('.inventory-item')[1].querySelector('.item-count').textContent = 
+                gameState.inventory.crystal;
+        }
+
+        // Update Quest Log
+        function updateQuestLog() {
+            if (gameState.questProgress.distanceTraveled > 1000) {
+                document.getElementById('obj1').classList.add('completed');
+            }
+            if (gameState.questProgress.monstersDefeated >= 3) {
+                document.getElementById('obj2').classList.add('completed');
+            }
+            if (gameState.questProgress.crystalsCollected >= 5) {
+                document.getElementById('obj3').classList.add('completed');
+            }
+        }
+
+        // Create Particles
+        function createParticles(element, emoji) {
+            const rect = element.getBoundingClientRect();
+            
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.textContent = emoji;
+                particle.style.left = rect.left + rect.width / 2 + 'px';
+                particle.style.top = rect.top + rect.height / 2 + 'px';
+                particle.style.fontSize = '20px';
+                
+                const dx = (Math.random() - 0.5) * 100;
+                const dy = (Math.random() - 0.5) * 100;
+                particle.style.setProperty('--dx', dx + 'px');
+                particle.style.setProperty('--dy', dy + 'px');
+                
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 2000);
+            }
+        }
+
+        // Game Over
+        function gameOver() {
+            showDialogue("Game Over", "💀", [
+                "Oh no! You've run out of health!",
+                "The kingdom still needs you. Try again!",
+                "Refresh the page to start a new quest."
+            ]);
+        }
+
+        // Show Victory
+        function showVictory() {
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalCrystals').textContent = gameState.questProgress.crystalsCollected;
+            document.getElementById('finalMonsters').textContent = gameState.questProgress.monstersDefeated;
+            document.getElementById('victoryScreen').classList.add('active');
+            
+            // Victory particles
+            setInterval(() => {
+                createParticles({getBoundingClientRect: () => ({
+                    left: Math.random() * window.innerWidth,
+                    top: Math.random() * window.innerHeight,
+                    width: 0,
+                    height: 0
+                })}, '🎉');
+            }, 500);
+        }
+
+        // Auto-save progress
+        setInterval(() => {
+            localStorage.setItem('mathventures-save', JSON.stringify(gameState));
+        }, 5000);
+
+        // Load saved game
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('mathventures-save');
+            if (saved) {
+                // Uncomment to enable save/load
+                // gameState = JSON.parse(saved);
+                // updateHUD();
+                // updateQuestLog();
+            }
+        });
+    </script>
+</body>
+</html>
