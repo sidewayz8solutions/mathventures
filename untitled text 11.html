@@ -1,0 +1,2544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathventures: Crystal Kingdom - Next Level Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=MedievalSharp&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #0a0e27;
+            font-family: 'MedievalSharp', cursive;
+            position: relative;
+        }
+
+        #game-container {
+            border: 5px solid transparent;
+            border-image: linear-gradient(45deg, #8B7355, #D4AF37, #8B7355) 1;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.8);
+            position: relative;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0e27, #2d1b69);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .loading-title {
+            font-family: 'Cinzel', serif;
+            font-size: 3em;
+            color: #FFD700;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .loading-bar {
+            width: 400px;
+            height: 30px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #D4AF37;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .loading-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .loading-text {
+            color: #F0E68C;
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        /* Math Modal - Advanced */
+        .math-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%232d1b69"/><stop offset="100%" style="stop-color:%230a0e27"/></linearGradient></defs><rect width="600" height="400" fill="url(%23bg)"/></svg>');
+            background-size: cover;
+            border: 4px solid #D4AF37;
+            border-radius: 20px;
+            padding: 40px;
+            display: none;
+            z-index: 1000;
+            min-width: 500px;
+            box-shadow: 0 0 100px rgba(255,215,0,0.8), inset 0 0 50px rgba(255,215,0,0.2);
+        }
+
+        .math-modal.active {
+            display: block;
+            animation: modalAppear 0.5s ease-out;
+        }
+
+        @keyframes modalAppear {
+            from {
+                transform: translate(-50%, -50%) scale(0) rotate(180deg);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .battle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .enemy-portrait {
+            width: 80px;
+            height: 80px;
+            border: 3px solid #D4AF37;
+            border-radius: 50%;
+            background: radial-gradient(circle, #4B0082, #8B008B);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .enemy-info {
+            flex: 1;
+            margin-left: 20px;
+        }
+
+        .enemy-name {
+            font-family: 'Cinzel', serif;
+            color: #FFD700;
+            font-size: 1.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .enemy-health-container {
+            margin-top: 10px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #ff6b6b;
+            border-radius: 10px;
+            height: 25px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .enemy-health-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ff4444);
+            transition: width 0.5s ease-out;
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+        }
+
+        .health-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .math-question {
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(240,240,240,0.95));
+            color: #2d1b69;
+            font-size: 2.2em;
+            text-align: center;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            font-weight: bold;
+            border: 3px solid #D4AF37;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .math-question::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,215,0,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .answer-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .answer-btn {
+            background: linear-gradient(135deg, #8B4513, #D2691E);
+            color: #FFD700;
+            border: 3px solid #D4AF37;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'MedievalSharp', cursive;
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .answer-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(255,215,0,0.3), transparent);
+            transition: width 0.6s, height 0.6s;
+            transform: translate(-50%, -50%);
+        }
+
+        .answer-btn:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .answer-btn:hover {
+            background: linear-gradient(135deg, #A0522D, #DEB887);
+            transform: scale(1.05) translateY(-3px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.5);
+        }
+
+        .answer-btn.correct {
+            background: linear-gradient(135deg, #228B22, #32CD32);
+            animation: correctPulse 0.8s;
+        }
+
+        .answer-btn.wrong {
+            background: linear-gradient(135deg, #8B0000, #DC143C);
+            animation: wrongShake 0.5s;
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); box-shadow: 0 0 30px #32CD32; }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px) rotate(-2deg); }
+            75% { transform: translateX(10px) rotate(2deg); }
+        }
+
+        .combo-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.5em;
+            color: #FFD700;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .timer-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 40px;
+            right: 40px;
+            height: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00FF00, #FFFF00, #FF0000);
+            width: 100%;
+            transition: width linear;
+        }
+
+        /* HUD Overlay */
+        .game-hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .hud-element {
+            background: linear-gradient(135deg, rgba(46, 25, 10, 0.9), rgba(92, 51, 23, 0.9));
+            border: 3px solid #D4AF37;
+            border-radius: 15px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            pointer-events: auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+
+        .stat-label {
+            color: #B8860B;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            color: #FFD700;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Ability Bar */
+        .ability-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .ability-slot {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.9), rgba(160, 82, 45, 0.9));
+            border: 3px solid #D4AF37;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .ability-slot:hover {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+        }
+
+        .ability-cooldown {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            border-radius: 0 0 7px 7px;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            padding: 2px;
+        }
+
+        .ability-key {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #FFD700;
+            color: #2d1b69;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <h1 class="loading-title">MATHVENTURES</h1>
+        <div class="loading-bar">
+            <div class="loading-fill" id="loadingFill"></div>
+        </div>
+        <div class="loading-text" id="loadingText">Loading magical assets...</div>
+    </div>
+    
+    <!-- Advanced Math Battle Modal -->
+    <div class="math-modal" id="mathModal">
+        <div class="combo-display" id="comboDisplay">COMBO x1</div>
+        
+        <div class="battle-header">
+            <div class="enemy-portrait" id="enemyPortrait">👹</div>
+            <div class="enemy-info">
+                <div class="enemy-name" id="enemyName">Shadow Goblin</div>
+                <div class="enemy-health-container">
+                    <div class="enemy-health-bar" id="enemyHealthBar" style="width: 100%"></div>
+                    <div class="health-text" id="enemyHealthText">100/100</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="math-question" id="mathQuestion">Loading...</div>
+        <div class="answer-grid" id="answerGrid"></div>
+        
+        <div class="timer-bar">
+            <div class="timer-fill" id="timerFill"></div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // GAME CONFIGURATION
+        // ============================================
+        const GameConfig = {
+            width: 1200,
+            height: 600,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 1000 },
+                    debug: false
+                }
+            },
+            audio: {
+                disableWebAudio: false
+            },
+            fps: {
+                target: 60,
+                forceSetTimeOut: false
+            }
+        };
+
+        // ============================================
+        // GAME DATA
+        // ============================================
+        const GameData = {
+            player: {
+                maxHealth: 10,
+                maxMana: 5,
+                baseSpeed: 250,
+                jumpPower: 600,
+                attackDamage: 1,
+                abilities: [
+                    { id: 'fireball', icon: '🔥', cooldown: 5000, damage: 2, manaCost: 1 },
+                    { id: 'heal', icon: '💚', cooldown: 10000, heal: 3, manaCost: 2 },
+                    { id: 'shield', icon: '🛡️', cooldown: 15000, duration: 5000, manaCost: 2 },
+                    { id: 'lightning', icon: '⚡', cooldown: 20000, damage: 5, manaCost: 3 }
+                ],
+                inventory: {
+                    potions: 3,
+                    crystals: 0,
+                    keys: 0
+                }
+            },
+            
+            levels: [
+                {
+                    id: 1,
+                    name: "Enchanted Forest",
+                    description: "Where magic begins...",
+                    background: { primary: 0x87CEEB, secondary: 0x98FB98 },
+                    music: 'forest-theme',
+                    enemyTypes: ['slime', 'mushroom', 'wolf'],
+                    bossType: 'forest_guardian',
+                    objectives: {
+                        main: "Defeat the Forest Guardian",
+                        optional: ["Collect 5 Magic Crystals", "Find the Hidden Chest"]
+                    }
+                },
+                {
+                    id: 2,
+                    name: "Crystal Caves",
+                    description: "Deep beneath the mountain...",
+                    background: { primary: 0x483D8B, secondary: 0x6A5ACD },
+                    music: 'cave-theme',
+                    enemyTypes: ['bat', 'golem', 'crystal_spider'],
+                    bossType: 'crystal_golem',
+                    objectives: {
+                        main: "Defeat the Crystal Golem",
+                        optional: ["Mine 10 Crystal Shards", "Solve the Ancient Puzzle"]
+                    }
+                },
+                {
+                    id: 3,
+                    name: "Lava Mountain",
+                    description: "The fire within burns...",
+                    background: { primary: 0x8B0000, secondary: 0xFF4500 },
+                    music: 'lava-theme',
+                    enemyTypes: ['fire_imp', 'lava_golem', 'phoenix'],
+                    bossType: 'fire_dragon',
+                    objectives: {
+                        main: "Defeat the Fire Dragon",
+                        optional: ["Collect 3 Phoenix Feathers", "Cross the Lava Bridge"]
+                    }
+                },
+                {
+                    id: 4,
+                    name: "Frozen Wastes",
+                    description: "Where ice never melts...",
+                    background: { primary: 0xB0E0E6, secondary: 0xE0FFFF },
+                    music: 'ice-theme',
+                    enemyTypes: ['ice_wraith', 'frost_giant', 'yeti'],
+                    bossType: 'ice_queen',
+                    objectives: {
+                        main: "Defeat the Ice Queen",
+                        optional: ["Break 5 Ice Prisons", "Find the Warm Cloak"]
+                    }
+                },
+                {
+                    id: 5,
+                    name: "Dark Castle",
+                    description: "The final confrontation...",
+                    background: { primary: 0x1C1C1C, secondary: 0x4B0082 },
+                    music: 'castle-theme',
+                    enemyTypes: ['dark_knight', 'shadow_demon', 'gargoyle'],
+                    bossType: 'malathor',
+                    objectives: {
+                        main: "Defeat Malathor and Save the Princess",
+                        optional: ["Unlock All Castle Doors", "Discover Malathor's Weakness"]
+                    }
+                }
+            ],
+            
+            enemies: {
+                // Forest Enemies
+                slime: { health: 2, speed: 50, points: 50, emoji: '🟢', ai: 'patrol' },
+                mushroom: { health: 3, speed: 30, points: 75, emoji: '🍄', ai: 'guard' },
+                wolf: { health: 4, speed: 100, points: 100, emoji: '🐺', ai: 'chase' },
+                forest_guardian: { health: 15, speed: 60, points: 500, emoji: '🌳', ai: 'boss', boss: true },
+                
+                // Cave Enemies
+                bat: { health: 2, speed: 120, points: 75, emoji: '🦇', ai: 'fly' },
+                golem: { health: 6, speed: 20, points: 150, emoji: '🗿', ai: 'patrol' },
+                crystal_spider: { health: 4, speed: 80, points: 125, emoji: '🕷️', ai: 'ambush' },
+                crystal_golem: { health: 20, speed: 40, points: 750, emoji: '💎', ai: 'boss', boss: true },
+                
+                // Lava Enemies
+                fire_imp: { health: 3, speed: 90, points: 100, emoji: '👺', ai: 'jump' },
+                lava_golem: { health: 8, speed: 30, points: 200, emoji: '🔥', ai: 'guard' },
+                phoenix: { health: 5, speed: 150, points: 250, emoji: '🦅', ai: 'fly' },
+                fire_dragon: { health: 25, speed: 70, points: 1000, emoji: '🐉', ai: 'boss', boss: true },
+                
+                // Ice Enemies
+                ice_wraith: { health: 4, speed: 70, points: 150, emoji: '👻', ai: 'phase' },
+                frost_giant: { health: 10, speed: 40, points: 300, emoji: '❄️', ai: 'throw' },
+                yeti: { health: 8, speed: 60, points: 250, emoji: '⛄', ai: 'charge' },
+                ice_queen: { health: 30, speed: 50, points: 1250, emoji: '👸', ai: 'boss', boss: true },
+                
+                // Castle Enemies
+                dark_knight: { health: 7, speed: 60, points: 200, emoji: '⚔️', ai: 'duel' },
+                shadow_demon: { health: 6, speed: 100, points: 250, emoji: '😈', ai: 'teleport' },
+                gargoyle: { health: 8, speed: 80, points: 300, emoji: '🗿', ai: 'swoop' },
+                malathor: { health: 50, speed: 80, points: 5000, emoji: '🧙‍♂️', ai: 'final_boss', boss: true }
+            },
+            
+            mathProblems: {
+                1: { // Level 1
+                    operations: ['add', 'subtract'],
+                    ranges: { min: 10, max: 50 },
+                    timer: 15000
+                },
+                2: { // Level 2
+                    operations: ['add', 'subtract', 'multiply'],
+                    ranges: { min: 20, max: 100 },
+                    timer: 12000
+                },
+                3: { // Level 3
+                    operations: ['multiply', 'divide'],
+                    ranges: { min: 5, max: 15 },
+                    timer: 10000
+                },
+                4: { // Level 4
+                    operations: ['all'],
+                    ranges: { min: 10, max: 150 },
+                    timer: 8000
+                },
+                5: { // Level 5 - Boss
+                    operations: ['all', 'algebra'],
+                    ranges: { min: 20, max: 200 },
+                    timer: 6000
+                }
+            }
+        };
+
+        // ============================================
+        // BOOT SCENE - Preloader
+        // ============================================
+        class BootScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'BootScene' });
+            }
+            
+            preload() {
+                // Create loading UI
+                const loadingScreen = document.getElementById('loading-screen');
+                const loadingFill = document.getElementById('loadingFill');
+                const loadingText = document.getElementById('loadingText');
+                
+                // Track loading progress
+                this.load.on('progress', (value) => {
+                    loadingFill.style.width = (value * 100) + '%';
+                });
+                
+                this.load.on('fileprogress', (file) => {
+                    loadingText.textContent = `Loading: ${file.key}`;
+                });
+                
+                this.load.on('complete', () => {
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 500);
+                });
+                
+                // Generate procedural sprites
+                this.generateSprites();
+                
+                // Load sound effects
+                this.createSoundEffects();
+            }
+            
+            generateSprites() {
+                // Generate player sprite
+                const playerGraphics = this.make.graphics({ x: 0, y: 0 }, false);
+                playerGraphics.fillStyle(0x4169E1);
+                playerGraphics.fillCircle(32, 32, 20);
+                playerGraphics.fillStyle(0x4B0082);
+                playerGraphics.fillTriangle(32, 12, 20, 32, 44, 32);
+                playerGraphics.generateTexture('player', 64, 64);
+                
+                // Generate enemy sprites
+                Object.keys(GameData.enemies).forEach(enemyType => {
+                    const enemyData = GameData.enemies[enemyType];
+                    const graphics = this.make.graphics({ x: 0, y: 0 }, false);
+                    
+                    // Create unique enemy appearance
+                    const color = Phaser.Display.Color.RandomRGB(100, 255).color;
+                    graphics.fillStyle(color);
+                    
+                    if (enemyData.boss) {
+                        graphics.fillCircle(40, 40, 35);
+                        graphics.fillStyle(0xFF0000);
+                        graphics.fillCircle(25, 30, 5);
+                        graphics.fillCircle(55, 30, 5);
+                    } else {
+                        graphics.fillCircle(30, 30, 25);
+                        graphics.fillStyle(0xFFFFFF);
+                        graphics.fillCircle(20, 25, 4);
+                        graphics.fillCircle(40, 25, 4);
+                    }
+                    
+                    graphics.generateTexture(enemyType, enemyData.boss ? 80 : 60, enemyData.boss ? 80 : 60);
+                });
+                
+                // Generate platform textures
+                const platformGraphics = this.make.graphics({ x: 0, y: 0 }, false);
+                platformGraphics.fillStyle(0x8B4513);
+                platformGraphics.fillRect(0, 0, 150, 20);
+                platformGraphics.generateTexture('platform', 150, 20);
+                
+                // Generate collectible sprites
+                const gemGraphics = this.make.graphics({ x: 0, y: 0 }, false);
+                gemGraphics.fillStyle(0xFF1493);
+                gemGraphics.fillTriangle(20, 10, 10, 30, 30, 30);
+                gemGraphics.generateTexture('gem', 40, 40);
+                
+                // Portal sprite
+                const portalGraphics = this.make.graphics({ x: 0, y: 0 }, false);
+                portalGraphics.lineStyle(4, 0xFFD700);
+                portalGraphics.strokeCircle(50, 60, 40);
+                portalGraphics.strokeCircle(50, 60, 30);
+                portalGraphics.strokeCircle(50, 60, 20);
+                portalGraphics.generateTexture('portal', 100, 120);
+            }
+            
+            createSoundEffects() {
+                // Generate simple sound effects using Web Audio API
+                // These would normally be loaded from files
+                
+                // Store references for later use
+                this.game.soundEffects = {
+                    jump: 'jump',
+                    collect: 'collect',
+                    hit: 'hit',
+                    spell: 'spell',
+                    victory: 'victory'
+                };
+            }
+            
+            create() {
+                this.scene.start('TitleScene');
+            }
+        }
+
+        // ============================================
+        // TITLE SCENE - Main Menu
+        // ============================================
+        class TitleScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'TitleScene' });
+            }
+            
+            create() {
+                // Create animated background
+                this.createAnimatedBackground();
+                
+                // Title
+                const title = this.add.text(600, 120, 'MATHVENTURES', {
+                    fontFamily: 'Cinzel',
+                    fontSize: '90px',
+                    color: '#FFD700',
+                    stroke: '#8B4513',
+                    strokeThickness: 8
+                });
+                title.setOrigin(0.5);
+                title.setShadow(5, 5, 'rgba(0,0,0,0.8)', 15);
+                
+                // Floating animation
+                this.tweens.add({
+                    targets: title,
+                    y: 140,
+                    duration: 3000,
+                    ease: 'Sine.inOut',
+                    yoyo: true,
+                    repeat: -1
+                });
+                
+                // Subtitle with typewriter effect
+                const subtitle = this.add.text(600, 220, '', {
+                    fontFamily: 'MedievalSharp',
+                    fontSize: '32px',
+                    color: '#FFA500'
+                });
+                subtitle.setOrigin(0.5);
+                
+                this.typewriterText(subtitle, 'The Crystal Kingdom Awaits...', 50);
+                
+                // Menu buttons
+                this.createMenuButtons();
+                
+                // Particle effects
+                this.createMagicalParticles();
+                
+                // Add keyboard shortcut
+                this.input.keyboard.once('keydown-SPACE', () => {
+                    this.startGame();
+                });
+            }
+            
+            createAnimatedBackground() {
+                // Gradient background
+                const graphics = this.add.graphics();
+                
+                // Animated gradient
+                let gradientPhase = 0;
+                this.time.addEvent({
+                    delay: 50,
+                    callback: () => {
+                        graphics.clear();
+                        gradientPhase += 0.01;
+                        
+                        const color1 = Phaser.Display.Color.HSLToColor(
+                            0.7 + Math.sin(gradientPhase) * 0.1,
+                            0.6,
+                            0.2
+                        ).color;
+                        
+                        const color2 = Phaser.Display.Color.HSLToColor(
+                            0.8 + Math.cos(gradientPhase) * 0.1,
+                            0.7,
+                            0.3
+                        ).color;
+                        
+                        const gradient = graphics.createLinearGradient(0, 0, 0, 600);
+                        gradient.addColorStop(0, color1);
+                        gradient.addColorStop(1, color2);
+                        graphics.fillGradientStyle(gradient);
+                        graphics.fillRect(0, 0, 1200, 600);
+                    },
+                    repeat: -1
+                });
+                
+                // Animated stars
+                for (let i = 0; i < 150; i++) {
+                    const star = this.add.circle(
+                        Phaser.Math.Between(0, 1200),
+                        Phaser.Math.Between(0, 600),
+                        Phaser.Math.Between(1, 3),
+                        0xFFFFFF
+                    );
+                    star.setAlpha(Phaser.Math.FloatBetween(0.3, 1));
+                    
+                    this.tweens.add({
+                        targets: star,
+                        alpha: { from: star.alpha, to: 0 },
+                        duration: Phaser.Math.Between(2000, 5000),
+                        repeat: -1,
+                        yoyo: true,
+                        delay: Phaser.Math.Between(0, 3000)
+                    });
+                }
+                
+                // Castle silhouette
+                this.createCastleSilhouette();
+            }
+            
+            createCastleSilhouette() {
+                const graphics = this.add.graphics();
+                graphics.fillStyle(0x000000, 0.3);
+                
+                // Draw castle towers
+                graphics.fillRect(200, 400, 80, 200);
+                graphics.fillTriangle(200, 400, 240, 350, 280, 400);
+                
+                graphics.fillRect(500, 380, 100, 220);
+                graphics.fillTriangle(500, 380, 550, 320, 600, 380);
+                
+                graphics.fillRect(900, 400, 80, 200);
+                graphics.fillTriangle(900, 400, 940, 350, 980, 400);
+                
+                // Castle wall
+                graphics.fillRect(280, 450, 220, 150);
+                graphics.fillRect(600, 450, 300, 150);
+            }
+            
+            createMenuButtons() {
+                const buttons = [
+                    { y: 320, text: 'Start Quest', callback: () => this.startGame() },
+                    { y: 390, text: 'Continue', callback: () => this.continueGame() },
+                    { y: 460, text: 'Options', callback: () => this.showOptions() },
+                    { y: 530, text: 'Credits', callback: () => this.showCredits() }
+                ];
+                
+                buttons.forEach((btnData, index) => {
+                    const button = this.add.rectangle(600, btnData.y, 280, 60, 0x8B4513);
+                    button.setStrokeStyle(3, 0xD4AF37);
+                    button.setInteractive({ useHandCursor: true });
+                    
+                    const text = this.add.text(600, btnData.y, btnData.text, {
+                        fontFamily: 'MedievalSharp',
+                        fontSize: '28px',
+                        color: '#FFD700'
+                    });
+                    text.setOrigin(0.5);
+                    
+                    // Stagger animation
+                    button.setScale(0);
+                    text.setScale(0);
+                    
+                    this.tweens.add({
+                        targets: [button, text],
+                        scaleX: 1,
+                        scaleY: 1,
+                        duration: 500,
+                        ease: 'Back.out',
+                        delay: index * 100
+                    });
+                    
+                    // Hover effects
+                    button.on('pointerover', () => {
+                        this.tweens.add({
+                            targets: [button, text],
+                            scaleX: 1.1,
+                            scaleY: 1.1,
+                            duration: 200
+                        });
+                        
+                        button.setFillStyle(0xA0522D);
+                    });
+                    
+                    button.on('pointerout', () => {
+                        this.tweens.add({
+                            targets: [button, text],
+                            scaleX: 1,
+                            scaleY: 1,
+                            duration: 200
+                        });
+                        
+                        button.setFillStyle(0x8B4513);
+                    });
+                    
+                    button.on('pointerdown', btnData.callback);
+                });
+            }
+            
+            createMagicalParticles() {
+                // Magic sparkles
+                const particles = this.add.particles(0, 0, 'gem', {
+                    x: { min: 0, max: 1200 },
+                    y: 600,
+                    scale: { start: 0.5, end: 0 },
+                    alpha: { start: 1, end: 0 },
+                    speed: { min: 100, max: 200 },
+                    angle: { min: 250, max: 290 },
+                    lifespan: 4000,
+                    frequency: 100,
+                    tint: [0xFFD700, 0xFFA500, 0xFF6347]
+                });
+            }
+            
+            typewriterText(textObject, message, speed) {
+                const letters = message.split('');
+                let i = 0;
+                
+                this.time.addEvent({
+                    delay: speed,
+                    callback: () => {
+                        textObject.text += letters[i];
+                        i++;
+                    },
+                    repeat: letters.length - 1
+                });
+            }
+            
+            startGame() {
+                // Fade transition
+                this.cameras.main.fadeOut(500, 0, 0, 0);
+                this.cameras.main.once('camerafadeoutcomplete', () => {
+                    this.scene.start('GameScene', { level: 1, newGame: true });
+                });
+            }
+            
+            continueGame() {
+                // Load saved game
+                const saveData = localStorage.getItem('mathventures-save');
+                if (saveData) {
+                    const data = JSON.parse(saveData);
+                    this.scene.start('GameScene', data);
+                } else {
+                    this.showMessage('No saved game found!');
+                }
+            }
+            
+            showOptions() {
+                this.scene.start('OptionsScene');
+            }
+            
+            showCredits() {
+                this.scene.start('CreditsScene');
+            }
+            
+            showMessage(text) {
+                const msg = this.add.text(600, 300, text, {
+                    fontFamily: 'MedievalSharp',
+                    fontSize: '24px',
+                    color: '#FF6347',
+                    backgroundColor: '#000000',
+                    padding: { x: 20, y: 10 }
+                });
+                msg.setOrigin(0.5);
+                msg.setAlpha(0);
+                
+                this.tweens.add({
+                    targets: msg,
+                    alpha: 1,
+                    duration: 500,
+                    yoyo: true,
+                    hold: 1000,
+                    onComplete: () => msg.destroy()
+                });
+            }
+        }
+
+        // ============================================
+        // MAIN GAME SCENE
+        // ============================================
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'GameScene' });
+                
+                // Game state
+                this.currentLevel = 1;
+                this.score = 0;
+                this.combo = 0;
+                this.maxCombo = 0;
+                
+                // Player stats
+                this.playerHealth = GameData.player.maxHealth;
+                this.playerMana = GameData.player.maxMana;
+                
+                // Collections
+                this.enemies = [];
+                this.collectibles = [];
+                this.projectiles = [];
+                
+                // Abilities
+                this.abilities = [...GameData.player.abilities];
+                this.abilityCooldowns = {};
+            }
+            
+            init(data) {
+                if (data.newGame) {
+                    this.resetGame();
+                } else {
+                    this.loadGameState(data);
+                }
+            }
+            
+            create() {
+                // Setup level
+                const levelData = GameData.levels[this.currentLevel - 1];
+                
+                // Create world
+                this.createWorld(levelData);
+                
+                // Create player
+                this.createPlayer();
+                
+                // Create enemies
+                this.createEnemies(levelData);
+                
+                // Create HUD
+                this.createHUD();
+                
+                // Create ability bar
+                this.createAbilityBar();
+                
+                // Setup controls
+                this.setupControls();
+                
+                // Setup collisions
+                this.setupCollisions();
+                
+                // Start level intro
+                this.showLevelIntro(levelData);
+                
+                // Camera setup
+                this.setupCamera();
+                
+                // Particle systems
+                this.createParticleSystems();
+                
+                // Save game periodically
+                this.time.addEvent({
+                    delay: 10000,
+                    callback: () => this.saveGame(),
+                    repeat: -1
+                });
+            }
+            
+            createWorld(levelData) {
+                // Dynamic background based on level
+                this.createDynamicBackground(levelData);
+                
+                // Create platforms
+                this.platforms = this.physics.add.staticGroup();
+                this.createPlatformLayout();
+                
+                // Create interactive elements
+                this.createInteractiveElements();
+                
+                // Create portal
+                this.createPortal();
+            }
+            
+            createDynamicBackground(levelData) {
+                // Multi-layer parallax background
+                const bg1 = this.add.rectangle(600, 300, 2400, 600, levelData.background.primary);
+                bg1.setScrollFactor(0.25);
+                
+                const bg2 = this.add.rectangle(600, 300, 2400, 600, levelData.background.secondary, 0.5);
+                bg2.setScrollFactor(0.5);
+                
+                // Animated background elements
+                for (let i = 0; i < 20; i++) {
+                    const element = this.add.circle(
+                        Phaser.Math.Between(0, 2400),
+                        Phaser.Math.Between(50, 400),
+                        Phaser.Math.Between(20, 50),
+                        levelData.background.primary,
+                        0.3
+                    );
+                    element.setScrollFactor(0.3 + Math.random() * 0.4);
+                    
+                    this.tweens.add({
+                        targets: element,
+                        y: element.y + Phaser.Math.Between(-30, 30),
+                        duration: Phaser.Math.Between(3000, 6000),
+                        ease: 'Sine.inOut',
+                        yoyo: true,
+                        repeat: -1,
+                        delay: Phaser.Math.Between(0, 3000)
+                    });
+                }
+            }
+            
+            createPlatformLayout() {
+                // Procedural platform generation
+                const platformCount = 15 + this.currentLevel * 3;
+                
+                // Ground platforms
+                for (let i = 0; i < 20; i++) {
+                    const ground = this.platforms.create(
+                        i * 120 + 60,
+                        570,
+                        'platform'
+                    );
+                    ground.setScale(0.8, 2);
+                    ground.refreshBody();
+                }
+                
+                // Floating platforms with variety
+                for (let i = 0; i < platformCount; i++) {
+                    const x = 200 + i * 150 + Phaser.Math.Between(-50, 50);
+                    const y = 450 - Math.sin(i * 0.5) * 150;
+                    
+                    const platform = this.platforms.create(x, y, 'platform');
+                    
+                    // Moving platforms
+                    if (i % 3 === 0) {
+                        const originalY = platform.y;
+                        this.tweens.add({
+                            targets: platform.body,
+                            y: originalY - 50,
+                            duration: 2000,
+                            ease: 'Sine.inOut',
+                            yoyo: true,
+                            repeat: -1
+                        });
+                    }
+                    
+                    // Rotating platforms
+                    if (i % 5 === 0) {
+                        this.tweens.add({
+                            targets: platform,
+                            angle: 360,
+                            duration: 5000,
+                            repeat: -1
+                        });
+                    }
+                }
+            }
+            
+            createPlayer() {
+                this.player = this.physics.add.sprite(100, 400, 'player');
+                this.player.setBounce(0.2);
+                this.player.setCollideWorldBounds(true);
+                this.player.setScale(1.2);
+                
+                // Player animations
+                this.anims.create({
+                    key: 'idle',
+                    frames: [{ key: 'player' }],
+                    frameRate: 1
+                });
+                
+                // Player properties
+                this.player.health = this.playerHealth;
+                this.player.mana = this.playerMana;
+                this.player.invulnerable = false;
+                
+                // Equipment effects
+                this.playerAura = this.add.circle(this.player.x, this.player.y, 40);
+                this.playerAura.setStrokeStyle(3, 0xFFD700, 0.5);
+                this.playerAura.setDepth(-1);
+            }
+            
+            createEnemies(levelData) {
+                const enemyCount = 5 + this.currentLevel * 2;
+                
+                levelData.enemyTypes.forEach((enemyType, typeIndex) => {
+                    for (let i = 0; i < Math.ceil(enemyCount / levelData.enemyTypes.length); i++) {
+                        const x = 400 + (typeIndex * 300) + i * 500 + Phaser.Math.Between(-100, 100);
+                        const y = 400;
+                        
+                        this.createEnemy(enemyType, x, y);
+                    }
+                });
+                
+                // Create boss
+                if (levelData.bossType) {
+                    this.createBoss(levelData.bossType);
+                }
+            }
+            
+            createEnemy(type, x, y) {
+                const enemyData = GameData.enemies[type];
+                const enemy = this.physics.add.sprite(x, y, type);
+                
+                enemy.setCollideWorldBounds(true);
+                enemy.setBounce(0.2);
+                enemy.setInteractive();
+                
+                // Enemy properties
+                enemy.enemyType = type;
+                enemy.health = enemyData.health;
+                enemy.maxHealth = enemyData.health;
+                enemy.speed = enemyData.speed;
+                enemy.points = enemyData.points;
+                enemy.ai = enemyData.ai;
+                
+                // Health bar
+                enemy.healthBar = this.add.rectangle(x, y - 40, 50, 8, 0xff0000);
+                enemy.healthBarBg = this.add.rectangle(x, y - 40, 50, 8, 0x000000, 0.5);
+                
+                // AI behavior
+                this.setupEnemyAI(enemy, enemyData.ai);
+                
+                // Click to battle
+                enemy.on('pointerdown', () => {
+                    const distance = Phaser.Math.Distance.Between(
+                        this.player.x, this.player.y,
+                        enemy.x, enemy.y
+                    );
+                    
+                    if (distance < 200) {
+                        this.startBattle(enemy);
+                    }
+                });
+                
+                this.enemies.push(enemy);
+            }
+            
+            createBoss(bossType) {
+                const bossData = GameData.enemies[bossType];
+                const boss = this.physics.add.sprite(2000, 300, bossType);
+                
+                boss.setScale(1.5);
+                boss.setCollideWorldBounds(true);
+                boss.setInteractive();
+                
+                // Boss properties
+                boss.enemyType = bossType;
+                boss.health = bossData.health;
+                boss.maxHealth = bossData.health;
+                boss.isBoss = true;
+                
+                // Boss health UI
+                this.createBossHealthBar(boss);
+                
+                // Boss patterns
+                this.setupBossAI(boss, bossType);
+                
+                boss.on('pointerdown', () => {
+                    this.startBossBattle(boss);
+                });
+                
+                this.enemies.push(boss);
+            }
+            
+            setupEnemyAI(enemy, aiType) {
+                switch(aiType) {
+                    case 'patrol':
+                        enemy.setVelocityX(enemy.speed);
+                        this.time.addEvent({
+                            delay: 3000,
+                            callback: () => {
+                                if (enemy.active) {
+                                    enemy.setVelocityX(-enemy.velocityX);
+                                }
+                            },
+                            repeat: -1
+                        });
+                        break;
+                        
+                    case 'chase':
+                        this.time.addEvent({
+                            delay: 100,
+                            callback: () => {
+                                if (enemy.active && this.player.active) {
+                                    const angle = Phaser.Math.Angle.Between(
+                                        enemy.x, enemy.y,
+                                        this.player.x, this.player.y
+                                    );
+                                    enemy.setVelocity(
+                                        Math.cos(angle) * enemy.speed,
+                                        Math.sin(angle) * enemy.speed / 2
+                                    );
+                                }
+                            },
+                            repeat: -1
+                        });
+                        break;
+                        
+                    case 'fly':
+                        enemy.body.setGravityY(-900);
+                        enemy.setVelocity(
+                            Phaser.Math.Between(-enemy.speed, enemy.speed),
+                            Phaser.Math.Between(-enemy.speed, enemy.speed)
+                        );
+                        this.time.addEvent({
+                            delay: 2000,
+                            callback: () => {
+                                if (enemy.active) {
+                                    enemy.setVelocity(
+                                        Phaser.Math.Between(-enemy.speed, enemy.speed),
+                                        Phaser.Math.Between(-enemy.speed, enemy.speed)
+                                    );
+                                }
+                            },
+                            repeat: -1
+                        });
+                        break;
+                        
+                    case 'jump':
+                        this.time.addEvent({
+                            delay: 2000,
+                            callback: () => {
+                                if (enemy.active && enemy.body.touching.down) {
+                                    enemy.setVelocityY(-500);
+                                }
+                            },
+                            repeat: -1
+                        });
+                        break;
+                }
+            }
+            
+            setupBossAI(boss, bossType) {
+                // Complex boss patterns
+                let phase = 1;
+                
+                this.time.addEvent({
+                    delay: 3000,
+                    callback: () => {
+                        if (!boss.active) return;
+                        
+                        switch(phase) {
+                            case 1:
+                                // Charge attack
+                                this.bossCharge(boss);
+                                phase = 2;
+                                break;
+                            case 2:
+                                // Projectile barrage
+                                this.bossProjectiles(boss);
+                                phase = 3;
+                                break;
+                            case 3:
+                                // Area attack
+                                this.bossAreaAttack(boss);
+                                phase = 1;
+                                break;
+                        }
+                    },
+                    repeat: -1
+                });
+            }
+            
+            createPortal() {
+                this.portal = this.physics.add.sprite(2300, 400, 'portal');
+                this.portal.setScale(1.5);
+                
+                // Portal animation
+                this.tweens.add({
+                    targets: this.portal,
+                    rotation: Math.PI * 2,
+                    duration: 5000,
+                    repeat: -1
+                });
+                
+                // Portal particles
+                this.portalParticles = this.add.particles(this.portal.x, this.portal.y, 'gem', {
+                    scale: { start: 0.5, end: 0 },
+                    speed: { min: 50, max: 150 },
+                    lifespan: 2000,
+                    frequency: 50,
+                    alpha: { start: 1, end: 0 },
+                    tint: 0xFFD700
+                });
+                
+                this.portal.isLocked = true;
+            }
+            
+            createHUD() {
+                // Health display
+                this.healthText = this.add.text(20, 20, '', {
+                    fontSize: '24px',
+                    color: '#FFD700',
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    padding: { x: 10, y: 5 }
+                });
+                this.healthText.setScrollFactor(0);
+                
+                // Mana display
+                this.manaText = this.add.text(20, 60, '', {
+                    fontSize: '24px',
+                    color: '#00BFFF',
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    padding: { x: 10, y: 5 }
+                });
+                this.manaText.setScrollFactor(0);
+                
+                // Score display
+                this.scoreText = this.add.text(600, 20, '', {
+                    fontSize: '28px',
+                    color: '#FFD700',
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    padding: { x: 15, y: 5 }
+                });
+                this.scoreText.setOrigin(0.5, 0);
+                this.scoreText.setScrollFactor(0);
+                
+                // Level display
+                this.levelText = this.add.text(1180, 20, '', {
+                    fontSize: '24px',
+                    color: '#FFA500',
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    padding: { x: 10, y: 5 }
+                });
+                this.levelText.setOrigin(1, 0);
+                this.levelText.setScrollFactor(0);
+                
+                this.updateHUD();
+            }
+            
+            createAbilityBar() {
+                // Ability slots at bottom of screen
+                const startX = 500;
+                const y = 550;
+                
+                this.abilities.forEach((ability, index) => {
+                    const slot = this.add.rectangle(
+                        startX + index * 70,
+                        y,
+                        60,
+                        60,
+                        0x8B4513,
+                        0.8
+                    );
+                    slot.setStrokeStyle(3, 0xD4AF37);
+                    slot.setScrollFactor(0);
+                    
+                    const icon = this.add.text(
+                        startX + index * 70,
+                        y,
+                        ability.icon,
+                        { fontSize: '30px' }
+                    );
+                    icon.setOrigin(0.5);
+                    icon.setScrollFactor(0);
+                    
+                    const key = this.add.text(
+                        startX + index * 70 + 25,
+                        y - 25,
+                        (index + 1).toString(),
+                        {
+                            fontSize: '12px',
+                            color: '#FFD700',
+                            backgroundColor: '#000000',
+                            padding: { x: 3, y: 1 }
+                        }
+                    );
+                    key.setOrigin(0.5);
+                    key.setScrollFactor(0);
+                    
+                    // Store references
+                    ability.slot = slot;
+                    ability.icon = icon;
+                    this.abilityCooldowns[ability.id] = 0;
+                });
+            }
+            
+            setupControls() {
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.wasd = this.input.keyboard.addKeys('W,A,S,D');
+                this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+                
+                // Ability keys
+                this.abilityKeys = [];
+                for (let i = 1; i <= 4; i++) {
+                    this.abilityKeys.push(
+                        this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[`ONE`].charCodeAt(0) - 1 + i)
+                    );
+                }
+                
+                // ESC for pause
+                this.input.keyboard.on('keydown-ESC', () => {
+                    this.pauseGame();
+                });
+            }
+            
+            setupCollisions() {
+                this.physics.add.collider(this.player, this.platforms);
+                this.physics.add.collider(this.enemies, this.platforms);
+                
+                this.physics.add.overlap(this.player, this.portal, () => {
+                    if (!this.portal.isLocked) {
+                        this.enterPortal();
+                    }
+                });
+                
+                this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
+                    if (!player.invulnerable) {
+                        this.playerTakeDamage(1);
+                    }
+                });
+            }
+            
+            setupCamera() {
+                this.cameras.main.setBounds(0, 0, 2400, 600);
+                this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+                this.cameras.main.setZoom(1);
+                
+                // Camera shake on damage
+                this.cameras.main.on('camerashakecomplete', () => {
+                    // Reset any camera effects
+                });
+            }
+            
+            createParticleSystems() {
+                // Jump particles
+                this.jumpParticles = this.add.particles(0, 0, 'gem', {
+                    scale: { start: 0.3, end: 0 },
+                    speed: { min: 50, max: 100 },
+                    lifespan: 500,
+                    quantity: 5,
+                    tint: 0x87CEEB,
+                    emitting: false
+                });
+                
+                // Hit particles
+                this.hitParticles = this.add.particles(0, 0, 'gem', {
+                    scale: { start: 0.5, end: 0 },
+                    speed: { min: 100, max: 200 },
+                    lifespan: 800,
+                    quantity: 10,
+                    tint: 0xFF0000,
+                    emitting: false
+                });
+                
+                // Magic particles
+                this.magicParticles = this.add.particles(0, 0, 'gem', {
+                    scale: { start: 0.4, end: 0 },
+                    speed: { min: 80, max: 120 },
+                    lifespan: 1000,
+                    quantity: 8,
+                    tint: [0xFFD700, 0xFFA500, 0xFF69B4],
+                    emitting: false
+                });
+            }
+            
+            showLevelIntro(levelData) {
+                // Cinematic intro
+                const overlay = this.add.rectangle(600, 300, 1200, 600, 0x000000, 0.7);
+                overlay.setScrollFactor(0);
+                
+                const levelName = this.add.text(600, 250, levelData.name, {
+                    fontFamily: 'Cinzel',
+                    fontSize: '48px',
+                    color: '#FFD700'
+                });
+                levelName.setOrigin(0.5);
+                levelName.setScrollFactor(0);
+                levelName.setAlpha(0);
+                
+                const levelDesc = this.add.text(600, 320, levelData.description, {
+                    fontFamily: 'MedievalSharp',
+                    fontSize: '24px',
+                    color: '#FFA500'
+                });
+                levelDesc.setOrigin(0.5);
+                levelDesc.setScrollFactor(0);
+                levelDesc.setAlpha(0);
+                
+                // Animate intro
+                this.tweens.add({
+                    targets: levelName,
+                    alpha: 1,
+                    y: 280,
+                    duration: 1000,
+                    ease: 'Power2'
+                });
+                
+                this.tweens.add({
+                    targets: levelDesc,
+                    alpha: 1,
+                    duration: 1000,
+                    delay: 500,
+                    ease: 'Power2'
+                });
+                
+                this.time.delayedCall(3000, () => {
+                    this.tweens.add({
+                        targets: [overlay, levelName, levelDesc],
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => {
+                            overlay.destroy();
+                            levelName.destroy();
+                            levelDesc.destroy();
+                        }
+                    });
+                });
+            }
+            
+            update() {
+                if (!this.player.active) return;
+                
+                // Player movement
+                this.handlePlayerMovement();
+                
+                // Update enemy positions
+                this.updateEnemies();
+                
+                // Update HUD
+                this.updateHUD();
+                
+                // Update abilities
+                this.updateAbilities();
+                
+                // Check victory conditions
+                this.checkVictoryConditions();
+                
+                // Update player aura
+                this.playerAura.x = this.player.x;
+                this.playerAura.y = this.player.y;
+            }
+            
+            handlePlayerMovement() {
+                const speed = GameData.player.baseSpeed;
+                
+                if (this.cursors.left.isDown || this.wasd.A.isDown) {
+                    this.player.setVelocityX(-speed);
+                    this.player.setFlipX(true);
+                } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
+                    this.player.setVelocityX(speed);
+                    this.player.setFlipX(false);
+                } else {
+                    this.player.setVelocityX(0);
+                }
+                
+                if ((this.cursors.up.isDown || this.wasd.W.isDown || this.spaceKey.isDown) 
+                    && this.player.body.touching.down) {
+                    this.player.setVelocityY(-GameData.player.jumpPower);
+                    this.jumpParticles.emitParticleAt(this.player.x, this.player.y + 30);
+                }
+                
+                // Use abilities
+                this.abilityKeys.forEach((key, index) => {
+                    if (Phaser.Input.Keyboard.JustDown(key)) {
+                        this.useAbility(this.abilities[index]);
+                    }
+                });
+            }
+            
+            updateEnemies() {
+                this.enemies.forEach(enemy => {
+                    if (!enemy.active) return;
+                    
+                    // Update health bar position
+                    if (enemy.healthBar) {
+                        enemy.healthBar.x = enemy.x;
+                        enemy.healthBar.y = enemy.y - 40;
+                        enemy.healthBarBg.x = enemy.x;
+                        enemy.healthBarBg.y = enemy.y - 40;
+                        
+                        const healthPercent = enemy.health / enemy.maxHealth;
+                        enemy.healthBar.scaleX = healthPercent;
+                    }
+                });
+            }
+            
+            updateHUD() {
+                this.healthText.setText(`Health: ${this.player.health}/${GameData.player.maxHealth}`);
+                this.manaText.setText(`Mana: ${this.player.mana}/${GameData.player.maxMana}`);
+                this.scoreText.setText(`Score: ${this.score}`);
+                this.levelText.setText(`Level ${this.currentLevel}`);
+            }
+            
+            updateAbilities() {
+                // Update cooldowns
+                Object.keys(this.abilityCooldowns).forEach(abilityId => {
+                    if (this.abilityCooldowns[abilityId] > 0) {
+                        this.abilityCooldowns[abilityId] -= this.game.loop.delta;
+                        
+                        // Update UI
+                        const ability = this.abilities.find(a => a.id === abilityId);
+                        if (ability && ability.slot) {
+                            ability.slot.setAlpha(0.5);
+                        }
+                    } else {
+                        const ability = this.abilities.find(a => a.id === abilityId);
+                        if (ability && ability.slot) {
+                            ability.slot.setAlpha(1);
+                        }
+                    }
+                });
+            }
+            
+            useAbility(ability) {
+                if (!ability || this.abilityCooldowns[ability.id] > 0) return;
+                if (this.player.mana < ability.manaCost) {
+                    this.showMessage('Not enough mana!');
+                    return;
+                }
+                
+                this.player.mana -= ability.manaCost;
+                this.abilityCooldowns[ability.id] = ability.cooldown;
+                
+                // Ability effects
+                switch(ability.id) {
+                    case 'fireball':
+                        this.castFireball();
+                        break;
+                    case 'heal':
+                        this.castHeal();
+                        break;
+                    case 'shield':
+                        this.castShield();
+                        break;
+                    case 'lightning':
+                        this.castLightning();
+                        break;
+                }
+                
+                this.magicParticles.emitParticleAt(this.player.x, this.player.y);
+            }
+            
+            castFireball() {
+                const fireball = this.physics.add.sprite(
+                    this.player.x,
+                    this.player.y,
+                    'gem'
+                );
+                fireball.setTint(0xFF4500);
+                fireball.setScale(1.5);
+                
+                const direction = this.player.flipX ? -1 : 1;
+                fireball.setVelocity(direction * 500, -100);
+                
+                this.physics.add.overlap(fireball, this.enemies, (fb, enemy) => {
+                    this.damageEnemy(enemy, 2);
+                    fb.destroy();
+                    this.hitParticles.emitParticleAt(enemy.x, enemy.y);
+                });
+                
+                this.time.delayedCall(2000, () => {
+                    if (fireball.active) fireball.destroy();
+                });
+            }
+            
+            castHeal() {
+                this.player.health = Math.min(
+                    GameData.player.maxHealth,
+                    this.player.health + 3
+                );
+                
+                // Heal effect
+                const healEffect = this.add.circle(this.player.x, this.player.y, 50, 0x00FF00, 0.5);
+                this.tweens.add({
+                    targets: healEffect,
+                    scale: 2,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => healEffect.destroy()
+                });
+            }
+            
+            castShield() {
+                this.player.invulnerable = true;
+                
+                const shield = this.add.circle(this.player.x, this.player.y, 60);
+                shield.setStrokeStyle(4, 0x00BFFF, 0.8);
+                
+                // Follow player
+                const updateShield = () => {
+                    shield.x = this.player.x;
+                    shield.y = this.player.y;
+                };
+                
+                this.time.addEvent({
+                    delay: 16,
+                    callback: updateShield,
+                    repeat: 300
+                });
+                
+                this.time.delayedCall(5000, () => {
+                    this.player.invulnerable = false;
+                    shield.destroy();
+                });
+            }
+            
+            castLightning() {
+                // Lightning strikes all visible enemies
+                this.enemies.forEach(enemy => {
+                    if (enemy.active && Phaser.Math.Distance.Between(
+                        this.player.x, this.player.y,
+                        enemy.x, enemy.y
+                    ) < 500) {
+                        // Lightning visual
+                        const lightning = this.add.line(
+                            0, 0,
+                            this.player.x, this.player.y - 200,
+                            enemy.x, enemy.y,
+                            0xFFFF00
+                        );
+                        lightning.setLineWidth(3);
+                        
+                        this.tweens.add({
+                            targets: lightning,
+                            alpha: { from: 1, to: 0 },
+                            duration: 500,
+                            onComplete: () => lightning.destroy()
+                        });
+                        
+                        this.damageEnemy(enemy, 5);
+                    }
+                });
+            }
+            
+            startBattle(enemy) {
+                this.scene.pause();
+                this.currentEnemy = enemy;
+                this.combo = 0;
+                
+                // Show battle modal
+                const modal = document.getElementById('mathModal');
+                modal.classList.add('active');
+                
+                // Set enemy info
+                document.getElementById('enemyName').textContent = enemy.enemyType.toUpperCase().replace('_', ' ');
+                document.getElementById('enemyPortrait').textContent = GameData.enemies[enemy.enemyType].emoji;
+                document.getElementById('enemyHealthText').textContent = `${enemy.health}/${enemy.maxHealth}`;
+                
+                this.generateMathProblem();
+            }
+            
+            startBossBattle(boss) {
+                // Epic boss intro
+                this.cameras.main.shake(500, 0.02);
+                this.cameras.main.flash(500, 100, 0, 100);
+                
+                this.scene.pause();
+                this.currentEnemy = boss;
+                
+                // Boss battle UI
+                const modal = document.getElementById('mathModal');
+                modal.classList.add('active');
+                modal.style.border = '6px solid #FF0000';
+                
+                document.getElementById('enemyName').textContent = '⚔️ BOSS: ' + boss.enemyType.toUpperCase();
+                document.getElementById('enemyPortrait').textContent = GameData.enemies[boss.enemyType].emoji;
+                
+                this.generateMathProblem(true);
+            }
+            
+            generateMathProblem(isBoss = false) {
+                const difficulty = GameData.mathProblems[this.currentLevel];
+                const operations = difficulty.operations;
+                const operation = operations[Math.floor(Math.random() * operations.length)];
+                
+                let question, answer;
+                
+                if (operation === 'algebra' && isBoss) {
+                    // Algebra problems for boss
+                    const a = Phaser.Math.Between(2, 10);
+                    const b = Phaser.Math.Between(10, 50);
+                    answer = Phaser.Math.Between(5, 20);
+                    question = `${a}x + ${b} = ${a * answer + b}\\nSolve for x`;
+                } else {
+                    // Regular math problems
+                    const num1 = Phaser.Math.Between(difficulty.ranges.min, difficulty.ranges.max);
+                    const num2 = Phaser.Math.Between(difficulty.ranges.min, Math.floor(difficulty.ranges.max / 2));
+                    
+                    switch(operation) {
+                        case 'add':
+                            question = `${num1} + ${num2}`;
+                            answer = num1 + num2;
+                            break;
+                        case 'subtract':
+                            question = `${num1} - ${num2}`;
+                            answer = num1 - num2;
+                            break;
+                        case 'multiply':
+                            question = `${num1} × ${num2}`;
+                            answer = num1 * num2;
+                            break;
+                        case 'divide':
+                            const divisor = Phaser.Math.Between(2, 12);
+                            const quotient = Phaser.Math.Between(difficulty.ranges.min, difficulty.ranges.max / divisor);
+                            question = `${divisor * quotient} ÷ ${divisor}`;
+                            answer = quotient;
+                            break;
+                    }
+                }
+                
+                document.getElementById('mathQuestion').innerHTML = question + ' = ?';
+                
+                // Generate answer options
+                const options = [answer];
+                while (options.length < 4) {
+                    const variance = Math.max(10, Math.abs(answer) * 0.3);
+                    const wrong = answer + Phaser.Math.Between(-variance, variance);
+                    if (!options.includes(wrong) && wrong !== answer) {
+                        options.push(Math.floor(wrong));
+                    }
+                }
+                options.sort(() => Math.random() - 0.5);
+                
+                // Create answer buttons
+                const grid = document.getElementById('answerGrid');
+                grid.innerHTML = '';
+                
+                options.forEach(option => {
+                    const btn = document.createElement('button');
+                    btn.className = 'answer-btn';
+                    btn.textContent = option;
+                    btn.onclick = () => this.checkAnswer(option, answer, btn);
+                    grid.appendChild(btn);
+                });
+                
+                // Start timer
+                this.startAnswerTimer(difficulty.timer);
+            }
+            
+            startAnswerTimer(duration) {
+                const timerFill = document.getElementById('timerFill');
+                let timeLeft = duration;
+                
+                timerFill.style.transition = `width ${duration}ms linear`;
+                timerFill.style.width = '0%';
+                
+                this.answerTimer = setTimeout(() => {
+                    this.timeOut();
+                }, duration);
+            }
+            
+            checkAnswer(selected, correct, button) {
+                clearTimeout(this.answerTimer);
+                
+                const buttons = document.querySelectorAll('.answer-btn');
+                buttons.forEach(btn => btn.disabled = true);
+                
+                if (selected === correct) {
+                    button.classList.add('correct');
+                    this.combo++;
+                    this.maxCombo = Math.max(this.maxCombo, this.combo);
+                    
+                    // Update combo display
+                    document.getElementById('comboDisplay').textContent = `COMBO x${this.combo}`;
+                    
+                    // Calculate score with combo multiplier
+                    const baseScore = 100 * this.currentLevel;
+                    const comboBonus = baseScore * Math.min(this.combo * 0.1, 2);
+                    this.score += Math.floor(baseScore + comboBonus);
+                    
+                    // Damage enemy
+                    const damage = 1 + Math.floor(this.combo / 3);
+                    this.currentEnemy.health = Math.max(0, this.currentEnemy.health - damage);
+                    
+                    // Update enemy health bar
+                    const healthPercent = (this.currentEnemy.health / this.currentEnemy.maxHealth) * 100;
+                    document.getElementById('enemyHealthBar').style.width = healthPercent + '%';
+                    document.getElementById('enemyHealthText').textContent = 
+                        `${this.currentEnemy.health}/${this.currentEnemy.maxHealth}`;
+                    
+                    if (this.currentEnemy.health <= 0) {
+                        // Enemy defeated
+                        setTimeout(() => {
+                            this.enemyDefeated();
+                        }, 1000);
+                    } else {
+                        // Next question
+                        setTimeout(() => {
+                            this.generateMathProblem(this.currentEnemy.isBoss);
+                        }, 1500);
+                    }
+                } else {
+                    button.classList.add('wrong');
+                    this.combo = 0;
+                    document.getElementById('comboDisplay').textContent = 'COMBO BROKEN!';
+                    
+                    // Show correct answer
+                    buttons.forEach(btn => {
+                        if (parseInt(btn.textContent) === correct) {
+                            btn.classList.add('correct');
+                        }
+                    });
+                    
+                    // Player takes damage
+                    this.playerTakeDamage(1);
+                    
+                    setTimeout(() => {
+                        if (this.player.health <= 0) {
+                            this.gameOver();
+                        } else {
+                            this.generateMathProblem(this.currentEnemy.isBoss);
+                        }
+                    }, 2000);
+                }
+            }
+            
+            timeOut() {
+                // Time ran out - same as wrong answer
+                this.combo = 0;
+                this.playerTakeDamage(1);
+                
+                if (this.player.health <= 0) {
+                    this.gameOver();
+                } else {
+                    this.generateMathProblem(this.currentEnemy.isBoss);
+                }
+            }
+            
+            enemyDefeated() {
+                const modal = document.getElementById('mathModal');
+                modal.classList.remove('active');
+                modal.style.border = '4px solid #D4AF37';
+                
+                this.scene.resume();
+                
+                // Victory effects
+                this.hitParticles.emitParticleAt(this.currentEnemy.x, this.currentEnemy.y);
+                
+                // Add score
+                this.score += this.currentEnemy.points;
+                
+                // Destroy enemy
+                if (this.currentEnemy.healthBar) {
+                    this.currentEnemy.healthBar.destroy();
+                    this.currentEnemy.healthBarBg.destroy();
+                }
+                
+                this.tweens.add({
+                    targets: this.currentEnemy,
+                    alpha: 0,
+                    scale: 0,
+                    rotation: Math.PI * 2,
+                    duration: 500,
+                    onComplete: () => {
+                        this.currentEnemy.destroy();
+                    }
+                });
+                
+                // Remove from array
+                const index = this.enemies.indexOf(this.currentEnemy);
+                if (index > -1) {
+                    this.enemies.splice(index, 1);
+                }
+                
+                // Drop loot
+                this.dropLoot(this.currentEnemy.x, this.currentEnemy.y);
+                
+                // Check if all enemies defeated
+                this.checkVictoryConditions();
+                
+                // Restore mana
+                this.player.mana = Math.min(GameData.player.maxMana, this.player.mana + 1);
+            }
+            
+            dropLoot(x, y) {
+                // Random loot drops
+                if (Math.random() < 0.3) {
+                    const gem = this.physics.add.sprite(x, y, 'gem');
+                    gem.setBounce(0.5);
+                    gem.setVelocity(Phaser.Math.Between(-50, 50), -200);
+                    
+                    this.physics.add.overlap(this.player, gem, () => {
+                        gem.destroy();
+                        this.score += 25;
+                        this.magicParticles.emitParticleAt(gem.x, gem.y);
+                    });
+                }
+                
+                if (Math.random() < 0.1) {
+                    // Health potion
+                    const potion = this.add.circle(x, y, 10, 0xFF0000);
+                    this.physics.add.existing(potion);
+                    potion.body.setBounce(0.5);
+                    
+                    this.physics.add.overlap(this.player, potion, () => {
+                        potion.destroy();
+                        this.player.health = Math.min(GameData.player.maxHealth, this.player.health + 1);
+                    });
+                }
+            }
+            
+            playerTakeDamage(amount) {
+                if (this.player.invulnerable) return;
+                
+                this.player.health -= amount;
+                this.cameras.main.shake(200, 0.01);
+                this.cameras.main.flash(200, 255, 0, 0, false, 0.5);
+                
+                // Invulnerability period
+                this.player.invulnerable = true;
+                this.player.setAlpha(0.5);
+                
+                this.time.delayedCall(1000, () => {
+                    this.player.invulnerable = false;
+                    this.player.setAlpha(1);
+                });
+                
+                if (this.player.health <= 0) {
+                    this.gameOver();
+                }
+            }
+            
+            damageEnemy(enemy, amount) {
+                enemy.health -= amount;
+                
+                if (enemy.health <= 0) {
+                    this.score += enemy.points;
+                    
+                    if (enemy.healthBar) {
+                        enemy.healthBar.destroy();
+                        enemy.healthBarBg.destroy();
+                    }
+                    
+                    enemy.destroy();
+                    
+                    const index = this.enemies.indexOf(enemy);
+                    if (index > -1) {
+                        this.enemies.splice(index, 1);
+                    }
+                    
+                    this.dropLoot(enemy.x, enemy.y);
+                    this.checkVictoryConditions();
+                }
+            }
+            
+            checkVictoryConditions() {
+                const nonBossEnemies = this.enemies.filter(e => !e.isBoss);
+                
+                if (nonBossEnemies.length === 0 && this.portal.isLocked) {
+                    this.portal.isLocked = false;
+                    
+                    // Portal unlock effect
+                    this.tweens.add({
+                        targets: this.portal,
+                        scale: 2,
+                        duration: 500,
+                        yoyo: true,
+                        repeat: 2
+                    });
+                    
+                    this.showMessage('Portal Unlocked!');
+                }
+            }
+            
+            enterPortal() {
+                if (this.currentLevel >= GameData.levels.length) {
+                    this.victory();
+                } else {
+                    this.levelComplete();
+                }
+            }
+            
+            levelComplete() {
+                // Save game state
+                this.saveGame();
+                
+                // Transition to level complete scene
+                this.scene.start('LevelCompleteScene', {
+                    level: this.currentLevel,
+                    score: this.score,
+                    maxCombo: this.maxCombo,
+                    health: this.player.health,
+                    mana: this.player.mana
+                });
+            }
+            
+            victory() {
+                // Final victory!
+                this.scene.start('VictoryScene', {
+                    score: this.score,
+                    maxCombo: this.maxCombo
+                });
+            }
+            
+            gameOver() {
+                this.scene.start('GameOverScene', {
+                    score: this.score,
+                    level: this.currentLevel
+                });
+            }
+            
+            pauseGame() {
+                this.scene.pause();
+                this.scene.launch('PauseScene');
+            }
+            
+            saveGame() {
+                const saveData = {
+                    level: this.currentLevel,
+                    score: this.score,
+                    health: this.player.health,
+                    mana: this.player.mana,
+                    inventory: GameData.player.inventory
+                };
+                
+                localStorage.setItem('mathventures-save', JSON.stringify(saveData));
+            }
+            
+            loadGameState(data) {
+                this.currentLevel = data.level || 1;
+                this.score = data.score || 0;
+                this.playerHealth = data.health || GameData.player.maxHealth;
+                this.playerMana = data.mana || GameData.player.maxMana;
+                
+                if (data.inventory) {
+                    GameData.player.inventory = data.inventory;
+                }
+            }
+            
+            resetGame() {
+                this.currentLevel = 1;
+                this.score = 0;
+                this.playerHealth = GameData.player.maxHealth;
+                this.playerMana = GameData.player.maxMana;
+                GameData.player.inventory = {
+                    potions: 3,
+                    crystals: 0,
+                    keys: 0
+                };
+            }
+            
+            showMessage(text) {
+                const message = this.add.text(600, 200, text, {
+                    fontFamily: 'MedievalSharp',
+                    fontSize: '36px',
+                    color: '#FFD700',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                });
+                message.setOrigin(0.5);
+                message.setScrollFactor(0);
+                message.setAlpha(0);
+                
+                this.tweens.add({
+                    targets: message,
+                    alpha: 1,
+                    y: 150,
+                    duration: 500,
+                    ease: 'Power2'
+                });
+                
+                this.time.delayedCall(2000, () => {
+                    this.tweens.add({
+                        targets: message,
+                        alpha: 0,
+                        y: 100,
+                        duration: 500,
+                        onComplete: () => message.destroy()
+                    });
+                });
+            }
+            
+            // Boss attack patterns
+            bossCharge(boss) {
+                this.tweens.add({
+                    targets: boss,
+                    x: this.player.x,
+                    duration: 1000,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        this.cameras.main.shake(300, 0.02);
+                    }
+                });
+            }
+            
+            bossProjectiles(boss) {
+                for (let i = 0; i < 5; i++) {
+                    this.time.delayedCall(i * 200, () => {
+                        const projectile = this.physics.add.sprite(boss.x, boss.y, 'gem');
+                        projectile.setTint(0xFF0000);
+                        
+                        const angle = Phaser.Math.Angle.Between(
+                            boss.x, boss.y,
+                            this.player.x, this.player.y
+                        ) + (i - 2) * 0.2;
+                        
+                        projectile.setVelocity(
+                            Math.cos(angle) * 300,
+                            Math.sin(angle) * 300
+                        );
+                        
+                        this.physics.add.overlap(this.player, projectile, () => {
+                            if (!this.player.invulnerable) {
+                                this.playerTakeDamage(1);
+                                projectile.destroy();
+                            }
+                        });
+                        
+                        this.time.delayedCall(3000, () => {
+                            if (projectile.active) projectile.destroy();
+                        });
+                    });
+                }
+            }
+            
+            bossAreaAttack(boss) {
+                // Warning circle
+                const warning = this.add.circle(boss.x, boss.y, 200);
+                warning.setStrokeStyle(4, 0xFF0000, 0.5);
+                
+                this.tweens.add({
+                    targets: warning,
+                    alpha: { from: 0.5, to: 1 },
+                    scale: { from: 1, to: 1.2 },
+                    duration: 1000,
+                    yoyo: true
+                });
+                
+                this.time.delayedCall(2000, () => {
+                    warning.destroy();
+                    
+                    // Damage check
+                    const distance = Phaser.Math.Distance.Between(
+                        this.player.x, this.player.y,
+                        boss.x, boss.y
+                    );
+                    
+                    if (distance < 200 && !this.player.invulnerable) {
+                        this.playerTakeDamage(2);
+                        this.cameras.main.flash(200, 255, 0, 0);
+                    }
+                });
+            }
+        }
+
+        // ============================================
+        // ADDITIONAL SCENES
+        // ============================================
+        
+        class LevelCompleteScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'LevelCompleteScene' });
+            }
+            
+            init(data) {
+                this.levelData = data;
+            }
+            
+            create() {
+                // Background
+                const bg = this.add.rectangle(600, 300, 1200, 600, 0x0a0e27);
+                
+                // Title
+                const title = this.add.text(600, 100, 'Level Complete!', {
+                    fontFamily: 'Cinzel',
+                    fontSize: '72px',
+                    color: '#FFD700'
+                });
+                title.setOrigin(0.5);
+                
+                // Stats
+                const stats = [
+                    `Score: ${this.levelData.score}`,
+                    `Max Combo: ${this.levelData.maxCombo}`,
+                    `Health Remaining: ${this.levelData.health}`,
+                    `Level Bonus: ${this.levelData.level * 500}`
+                ];
+                
+                stats.forEach((stat, index) => {
+                    const text = this.add.text(600, 250 + index * 50, stat, {
+                        fontFamily: 'MedievalSharp',
+                        fontSize: '32px',
+                        color: '#FFA500'
+                    });
+                    text.setOrigin(0.5);
+                    text.setAlpha(0);
+                    
+                    this.tweens.add({
+                        targets: text,
+                        alpha: 1,
+                        delay: 500 + index * 200,
+                        duration: 500
+                    });
+                });
+                
+                // Continue button
+                const continueBtn = this.add.rectangle(600, 500, 250, 70, 0x8B4513);
+                continueBtn.setStrokeStyle(3, 0xD4AF37);
+                continueBtn.setInteractive({ useHandCursor: true });
+                
+                const btnText = this.add.text(600, 500, 'Next Level', {
+                    fontFamily: 'MedievalSharp',
+                    fontSize: '32px',
+                    color: '#FFD700'
+                });
+                btnText.setOrigin(0.5);
+                
+                continueBtn.on('pointerdown', () => {
+                    this.scene.start('GameScene', {
+                        level: this.levelData.level + 1,
+                        score: this.levelData.score + (this.levelData.level * 500),
+                        health: Math.min(GameData.player.maxHealth, this.levelData.health + 2),
+                        mana: GameData.player.maxMana
+                    });
+                });
+            }
+        }
+        
+        class VictoryScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'VictoryScene' });
+            }
+            
+            create() {
+                // Epic victory screen
+                const graphics = this.add.graphics();
+                const gradient = graphics.createLinearGradient(0, 0, 0, 600);
+                gradient.addColorStop(0, 0xFFD700);
+                gradient.addColorStop(1, 0xFFA500);
+                graphics.fillGradientStyle(gradient);
+                graphics.fillRect(0, 0, 1200, 600);
+                
+                // Victory title
+                const title = this.add.text(600, 150, 'VICTORY!', {
+                    fontFamily: 'Cinzel',
+                    fontSize: '120px',
+                    color: '#FFFFFF',
+                    stroke: '#8B4513',
+                    strokeThickness: 10
+                });
+                title.setOrigin(0.5);
+                
+                // Story conclusion
+                const story = this.add.text(600, 300,
+                    'You have defeated Malathor and saved Princess Arithmia!\n' +
+                    'The Crystal Kingdom is restored to peace!',
+                    {
+                        fontFamily: 'MedievalSharp',
+                        fontSize: '28px',
+                        color: '#FFFFFF',
+                        align: 'center'
+                    }
+                );
+                story.setOrigin(0.5);
+                
+                // Fireworks
+                this.time.addEvent({
+                    delay: 500,
+                    callback: () => {
+                        const x = Phaser.Math.Between(100, 1100);
+                        const y = Phaser.Math.Between(100, 500);
+                        
+                        const firework = this.add.particles(x, y, 'gem', {
+                            speed: { min: 200, max: 400 },
+                            scale: { start: 1, end: 0 },
+                            lifespan: 1000,
+                            quantity: 30,
+                            tint: [0xFFD700, 0xFF69B4, 0x00BFFF, 0xFF4500]
+                        });
+                        
+                        this.time.delayedCall(1500, () => firework.destroy());
+                    },
+                    repeat: -1
+                });
+            }
+        }
+        
+        class GameOverScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'GameOverScene' });
+            }
+            
+            create() {
+                const bg = this.add.rectangle(600, 300, 1200, 600, 0x000000);
+                
+                const title = this.add.text(600, 200, 'Game Over', {
+                    fontFamily: 'Cinzel',
+                    fontSize: '80px',
+                    color: '#FF0000'
+                });
+                title.setOrigin(0.5);
+                
+                const retryBtn = this.add.rectangle(600, 400, 200, 60, 0x8B0000);
+                retryBtn.setInteractive({ useHandCursor: true });
+                
+                const retryText = this.add.text(600, 400, 'Try Again', {
+                    fontSize: '28px',
+                    color: '#FFFFFF'
+                });
+                retryText.setOrigin(0.5);
+                
+                retryBtn.on('pointerdown', () => {
+                    this.scene.start('TitleScene');
+                });
+            }
+        }
+        
+        class PauseScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'PauseScene' });
+            }
+            
+            create() {
+                const overlay = this.add.rectangle(600, 300, 1200, 600, 0x000000, 0.8);
+                
+                const pauseText = this.add.text(600, 200, 'PAUSED', {
+                    fontFamily: 'Cinzel',
+                    fontSize: '64px',
+                    color: '#FFD700'
+                });
+                pauseText.setOrigin(0.5);
+                
+                const resumeBtn = this.add.text(600, 350, 'Resume', {
+                    fontSize: '32px',
+                    color: '#FFFFFF'
+                });
+                resumeBtn.setOrigin(0.5);
+                resumeBtn.setInteractive({ useHandCursor: true });
+                
+                resumeBtn.on('pointerdown', () => {
+                    this.scene.stop();
+                    this.scene.resume('GameScene');
+                });
+                
+                this.input.keyboard.on('keydown-ESC', () => {
+                    this.scene.stop();
+                    this.scene.resume('GameScene');
+                });
+            }
+        }
+        
+        // ============================================
+        // INITIALIZE GAME
+        // ============================================
+        const game = new Phaser.Game({
+            ...GameConfig,
+            parent: 'game-container',
+            scene: [
+                BootScene,
+                TitleScene,
+                GameScene,
+                LevelCompleteScene,
+                VictoryScene,
+                GameOverScene,
+                PauseScene
+            ]
+        });
+    </script>
+</body>
+</html>

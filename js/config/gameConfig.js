@@ -1,7 +1,7 @@
 const GameConfig = {
     // Game settings
-    GAME_WIDTH: 1200,
-    GAME_HEIGHT: 600,
+    GAME_WIDTH: 1280,
+    GAME_HEIGHT: 720,
     WORLD_WIDTH: 2400,
     
     // Player settings
@@ -48,4 +48,19 @@ const GameConfig = {
         2: { min: 20, max: 100, operations: ['add', 'subtract', 'multiply'] },
         3: { min: 30, max: 150, operations: ['all'] }
     }
+};
+
+const gameConfig = {
+    type: Phaser.AUTO,
+    width: 1280,
+    height: 720,
+    parent: 'game-container',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 500 },
+            debug: false
+        }
+    },
+    scene: [] // Scenes will be added in main.js
 };

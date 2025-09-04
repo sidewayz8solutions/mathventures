@@ -1,0 +1,95 @@
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1a1a1a;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#game-container {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 0 30px rgba(128, 0, 128, 0.7);
+}
+
+.math-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: none; /* Hidden by default */
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(145deg, #4a0e61, #2c0b3a);
+    color: white;
+    padding: 40px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    border: 3px solid #d946ef;
+    box-shadow: 0 10px 40px rgba(217, 70, 239, 0.4);
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.modal-content h2 {
+    font-size: 2.5em;
+    margin-bottom: 15px;
+    color: #fde047;
+    text-shadow: 0 0 10px #fde047;
+}
+
+.modal-content #question {
+    font-size: 2em;
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+#answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.answer-btn {
+    background: linear-gradient(145deg, #8b5cf6, #6d28d9);
+    color: white;
+    border: 2px solid #a78bfa;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.answer-btn:hover {
+    transform: translateY(-5px) scale(1.05);
+    background: linear-gradient(145deg, #a78bfa, #8b5cf6);
+    box-shadow: 0 5px 20px rgba(167, 139, 250, 0.4);
+}
+
+#feedback {
+    margin-top: 20px;
+    font-size: 1.2em;
+    height: 30px;
+    font-weight: bold;
+}
